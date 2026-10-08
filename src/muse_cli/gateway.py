@@ -97,6 +97,9 @@ def fetch_hatch_token(cookies, access_token, vm_id):
 
 def load_cookies(path):
     """Accept a curl-style 'a=b; c=d' file or {"cookies": {...}} JSON."""
+    if str(path).lower().endswith('.dpapi'):
+        from .protected_session import load_windows_session
+        return load_windows_session(path)
     raw = open(path).read().strip()
     if raw.startswith("{"):
         try:
@@ -266,11 +269,11 @@ class Gateway:
         return d.get("result", d) if isinstance(d, dict) else d
 
     # -- subscriptions (ndjson event streams) -------------------------------
-    def subscribe_raw(self, method, path_params=None, body=None, query=None,
+    def iter_subscription_raw(self, method, path_params=None, body=None, query=None,
                       max_records=100, idle_timeout=10, overall_timeout=120):
-        """Open a subscription; returns list of raw record bytes."""
+        """Yield records immediately. This subscription owns/closes the connection."""
         sid = self._open(method, path_params, body, query)
-        buf, records = b"", []
+        buf, count = b"", 0
         q: queue_mod.Queue = queue_mod.Queue()
         stop = False
 
@@ -281,11 +284,12 @@ class Gateway:
             except Exception as e:  # noqa: BLE001
                 q.put(e)
 
-        threading.Thread(target=reader, daemon=True).start()
+        worker = threading.Thread(target=reader, daemon=True)
+        worker.start()
         deadline = time.time() + overall_timeout
         idle = time.time() + idle_timeout
         try:
-            while time.time() < deadline and len(records) < max_records:
+            while time.time() < deadline and count < max_records:
                 try:
                     sf = q.get(timeout=2)
                 except queue_mod.Empty:
@@ -298,29 +302,47 @@ class Gateway:
                     continue
                 idle = time.time() + idle_timeout
                 kind = sf.WhichOneof("kind")
+                ended = False
                 if kind == "response":
+                    if not 200 <= sf.response.status < 300:
+                        raise GatewayError(sf.response.status, 'subscription rejected')
                     if sf.response.body:
                         buf += bytes(sf.response.body)
-                    if sf.response.end_body and not buf:
-                        break
+                    ended = sf.response.end_body
                 elif kind == "body_chunk":
                     buf += bytes(sf.body_chunk.data)
-                    if sf.body_chunk.end_body:
-                        break
+                    ended = sf.body_chunk.end_body
                 elif kind == "reset":
-                    break
+                    raise GatewayError(-1, 'subscription stream reset')
                 while b"\n" in buf:
                     line, buf = buf.split(b"\n", 1)
                     if line.strip():
-                        records.append(line)
-                        if len(records) >= max_records:
+                        count += 1
+                        yield line
+                        if count >= max_records:
                             break
+                if ended:
+                    break
+            if buf.strip() and count < max_records:
+                yield buf
         finally:
-            nonlocal_stop = True
-            stop = nonlocal_stop
-        if buf.strip():
-            records.append(buf)
-        return records
+            stop = True
+            self.close()
+            worker.join(timeout=2)
+
+    def subscribe_raw(self, *args, **kwargs):
+        return list(self.iter_subscription_raw(*args, **kwargs))
+
+    def iter_subscription_json(self, *args, **kwargs):
+        records = self.iter_subscription_raw(*args, **kwargs)
+        try:
+            for line in records:
+                try:
+                    yield json.loads(line)
+                except json.JSONDecodeError:
+                    raise GatewayError(-1, 'invalid subscription JSON')
+        finally:
+            records.close()
 
     def subscribe_json(self, *a, **kw):
         out = []

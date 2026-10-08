@@ -31,6 +31,8 @@ def load_config():
         cfg = json.load(open(CONFIG_FILE))
     changed = False
     cfg.setdefault("cookies_file", COOKIES_FILE)
+    if os.environ.get('MUSE_COOKIES_FILE'):
+        cfg['cookies_file'] = os.environ['MUSE_COOKIES_FILE']
     if "vm_id" not in cfg and os.environ.get("MUSE_VM_ID"):
         cfg["vm_id"] = os.environ["MUSE_VM_ID"]
     if "node_id" not in cfg:
@@ -426,10 +428,19 @@ def cmd_send(args):
 def cmd_watch(args):
     gw = connect(load_config())
     try:
-        recs = gw.subscribe_json("chat.subscribe", body={"capabilities": {}},
-                                 max_records=args.n, idle_timeout=8,
+        body = {"capabilities": ["chat_cancel", "delta_stream", "custom_reactions",
+                                  "custom_reactions_facebook_thumbs_up_v1"],
+                "after_stream_seq": args.after_stream_seq,
+                "after_chat_event_seq": args.after_chat_event_seq}
+        if args.thread:
+            body['session_id'] = args.thread
+        recs = gw.iter_subscription_json("chat.subscribe", body=body,
+                                 max_records=args.n, idle_timeout=args.timeout,
                                  overall_timeout=args.timeout)
         for ev in recs:
+            if args.raw:
+                print(json.dumps(ev, ensure_ascii=False), flush=True)
+                continue
             et = ev.get("event", ev.get("type"))
             if et in ("agent.status",) and not args.all:
                 continue
@@ -675,6 +686,10 @@ def main():
     p.add_argument("--wait", type=int, default=90, help="seconds to wait for reply (0 = don't)")
     p.set_defaults(fn=cmd_send)
     p = sub.add_parser("watch", help="tail live agent events")
+    p.add_argument('--thread', default=None, help='subscribe to a side chat session ID')
+    p.add_argument('--after-stream-seq', type=int, default=0)
+    p.add_argument('--after-chat-event-seq', type=int, default=0)
+    p.add_argument('--raw', action='store_true', help='emit complete NDJSON events; may contain private content')
     p.add_argument("--timeout", type=int, default=60); p.add_argument("--n", type=int, default=50)
     p.add_argument("--all", action="store_true"); p.set_defaults(fn=cmd_watch)
     p = sub.add_parser("feed", help="list feed units")

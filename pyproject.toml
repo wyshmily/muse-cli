@@ -58,6 +58,9 @@ dependencies = [
     "protobuf>=5.0",
 ]
 
+[project.optional-dependencies]
+linux-login = ["SecretStorage==3.5.0; sys_platform == 'linux'"]
+
 [project.urls]
 Homepage = "https://github.com/nikships/muse-cli"
 Documentation = "https://github.com/nikships/muse-cli#readme"
@@ -68,6 +71,8 @@ Changelog = "https://github.com/nikships/muse-cli/releases"
 
 [project.scripts]
 muse-cli = "muse_cli.cli:main"
+muse-login = "muse_cli.native_login:main"
+muse-read = "muse_cli.readonly:main"
 
 [tool.hatch.version]
 path = "src/muse_cli/__init__.py"
@@ -80,6 +85,7 @@ include = [
     "src/muse_cli",
     "docs",
     "skills",
+    "tests",
     "README.md",
     "LICENSE",
 ]

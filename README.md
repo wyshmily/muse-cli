@@ -1,3 +1,10 @@
+> **DotLink fork:** maintained at [wyshmily/muse-cli](https://github.com/wyshmily/muse-cli),
+> branch `dotlink-native-stream`. It adds Windows protected-session reads, side-chat
+> event streaming, and separate native login/read-only commands. Install this
+> checkout to retain these changes; upstream PyPI and `muse-cli update` do not
+> include them. See [fork changes](docs/DOTLINK-CHANGES.md) and
+> [native login](docs/NATIVE-LOGIN.md). Upstream project information follows.
+
 <div align="center">
 
 # muse-cli

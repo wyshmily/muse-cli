@@ -11,6 +11,10 @@ cookies.txt
 agent-cookies.json
 config.json
 *.har
+*.dpapi
+.env
+.env.*
+.codex/
 
 # OS
 .DS_Store

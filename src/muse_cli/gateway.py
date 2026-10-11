@@ -53,7 +53,7 @@ class AuthError(RuntimeError):
 
 class GatewayError(RuntimeError):
     def __init__(self, status, payload):
-        super().__init__(f"gateway status={status} payload={payload!r}")
+        super().__init__(f"gateway status={status}; response details suppressed")
         self.status = status
         self.payload = payload
 
@@ -79,8 +79,14 @@ def fetch_access_token(cookies):
     r = rq.post("https://muse.ai/api/auth/check", headers=_hatch_headers(cookies),
                 data=b"", impersonate="chrome", timeout=20)
     if r.status_code != 200:
-        raise AuthError(f"auth/check -> {r.status_code} {r.text[:120]} (cookies expired? re-export)")
-    return r.json()["access_token"]
+        raise AuthError(f"auth/check -> {r.status_code}")
+    try:
+        token = r.json()["access_token"]
+        if not isinstance(token, str) or not token:
+            raise ValueError()
+        return token
+    except (ValueError, KeyError, TypeError):
+        raise AuthError('auth/check returned no valid session') from None
 
 
 def fetch_hatch_token(cookies, access_token, vm_id):
@@ -91,7 +97,7 @@ def fetch_hatch_token(cookies, access_token, vm_id):
         impersonate="chrome", timeout=20,
     )
     if r.status_code != 200:
-        raise AuthError(f"hatch/token -> {r.status_code} {r.text[:160]}")
+        raise AuthError(f"hatch/token -> {r.status_code}")
     return r.json()["token"]
 
 
@@ -137,7 +143,7 @@ def fetch_session_info(cookies):
     try:
         info = r.json()
     except ValueError:
-        raise AuthError(f"api/session returned non-JSON ({r.text[:80]!r})")
+        raise AuthError('api/session returned non-JSON') from None
     if "vm_id" not in info:
         # The VM is down/restarting: {"status":"unavailable",
         # "vm_resolution_issue":{"kind":"retryable"}}. Not an auth problem,

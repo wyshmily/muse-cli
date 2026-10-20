@@ -97,15 +97,30 @@ def main(argv=None):
         parser = Parser(description='Read-only Muse queries using explicitly selected existing login storage.',
                         epilog='vm-status: website inventory/state (no wake/reset); vm-health and '
                                'vm-enrollment-health: gateway diagnostics, not quota. '
-                               'quota: verified read-only website action; no recovery or retries.')
+                               'quota: verified read-only website action; no recovery or retries. '
+                               'capabilities: offline route inventory, --id filters method prefix; not permission to execute.')
         parser.add_argument('--profile', default='default')
         parser.add_argument('--store', choices=['secretservice', 'encrypted-file', 'plaintext-file'], default='secretservice')
         parser.add_argument('--vault')
         parser.add_argument('command', choices=['identity', 'sessions', 'session', 'history', 'spaces', 'media',
-                                                'vm-health', 'vm-enrollment-health', 'vm-status', 'quota'])
+                                                'vm-health', 'vm-enrollment-health', 'vm-status', 'quota', 'capabilities', 'model', 'computer-context',
+                                                'voice-catalog', 'voice-filters',
+                                                'connector-marketplace', 'library'])
         parser.add_argument('--id')
         parser.add_argument('--limit', type=int, default=20)
+        parser.add_argument('--offset', type=int, default=0, help='Voice/library page offset (0..100000).')
+        parser.add_argument('--preset', choices=['artifacts', 'media', 'recents'], default='artifacts', help='Library listing preset; never a filesystem path.')
         args = parser.parse_args(argv)
+        if args.command == 'capabilities':
+            from .capabilities import capabilities
+            print(json.dumps(capabilities(prefix=args.id, limit=args.limit), ensure_ascii=False))
+            return 0
+        if not 0 <= args.offset <= 100000:
+            raise ReadError('INVALID_LIMIT')
+        if args.offset and args.command not in ('voice-catalog', 'library'):
+            raise ReadError('INVALID_ARGUMENTS')
+        if args.preset != 'artifacts' and args.command != 'library':
+            raise ReadError('INVALID_ARGUMENTS')
         if args.command == 'media':
             raise ReadError('MEDIA_SCHEMA_UNVERIFIED')
         if not 1 <= args.limit <= 100:
@@ -119,7 +134,8 @@ def main(argv=None):
         from .gateway import Gateway
         store = configured_store(args.store, args.profile, vault=args.vault, allow_secret_access=True)
         from .account_queries import WEB_QUERIES, read_web
-        if args.command in WEB_QUERIES or args.command in ('quota', 'vm-health', 'vm-enrollment-health'):
+        from .metadata_queries import CONTRACTS, read_metadata
+        if args.command in WEB_QUERIES or args.command in CONTRACTS or args.command in ('quota', 'vm-health', 'vm-enrollment-health'):
             with store.lock():
                 value = store.load()
                 if value is None:
@@ -139,7 +155,11 @@ def main(argv=None):
                                     if c.domain.lstrip('.') == 'muse.ai'
                                     and c.path in ('/', '/api', '/api/') and not c.is_expired())
                 gateway = Gateway(cookies)
-                result = read(gateway, args.command)
+                if args.command in CONTRACTS:
+                    result = read_metadata(gateway, args.command, limit=args.limit,
+                                           offset=args.offset, preset=args.preset)
+                else:
+                    result = read(gateway, args.command)
         else:
             with store.lock():
                 session = SavedLogin(store).resume()

@@ -79,3 +79,10 @@ successful response. It is not `agreement.currentPeriodEndTime`, which is a
 billing-period boundary. The query excludes agreement details. Missing or
 invalid reset data remains unknown; a reset timestamp is not a guarantee that
 an unrelated account, authentication or VM problem will recover then.
+
+## Additional bounded metadata reads
+
+The same branch also provides `library`, `model`, `computer-context`,
+`voice-catalog`, `voice-filters`, `connector-marketplace`, and offline
+`capabilities`. See [web feature coverage](WEB-FEATURE-COVERAGE.md) for exact
+scope, runtime checks, static-only presets, excluded operations and gaps.

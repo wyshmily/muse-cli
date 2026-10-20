@@ -71,16 +71,6 @@ class WebQueriesTests(unittest.TestCase):
                 read_web(http, 'vm-status')
             self.assertEqual(cm.exception.code, 'INVALID_RESPONSE')
 
-    def test_quota_unverified_before_credential_access(self):
-        import contextlib
-        import io
-        from muse_cli.readonly import main
-        output = io.StringIO()
-        with patch('muse_cli.secure_store.configured_store') as store, contextlib.redirect_stderr(output):
-            self.assertEqual(main(['quota']), 2)
-        store.assert_not_called()
-        self.assertEqual(output.getvalue().strip(), 'QUOTA_QUERY_UNVERIFIED')
-
     def test_web_cli_does_not_resume_save_or_connect_gateway(self):
         import contextlib
         import io

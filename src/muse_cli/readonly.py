@@ -33,8 +33,6 @@ def safe_id(value):
 def read(gateway, command, *, identifier=None, limit=20, cursor=None):
     if not 1 <= limit <= 100:
         raise ReadError('INVALID_LIMIT')
-    if command == 'quota':
-        raise ReadError('QUOTA_QUERY_UNVERIFIED')
     if command == 'media':
         raise ReadError('MEDIA_SCHEMA_UNVERIFIED')
     requests = {'identity': ('identity', {}), 'sessions': ('sessions.list', {}),
@@ -99,7 +97,7 @@ def main(argv=None):
         parser = Parser(description='Read-only Muse queries using explicitly selected existing login storage.',
                         epilog='vm-status: website inventory/state (no wake/reset); vm-health and '
                                'vm-enrollment-health: gateway diagnostics, not quota. '
-                               'quota: unavailable until its read contract is verified; sends no request.')
+                               'quota: verified read-only website action; no recovery or retries.')
         parser.add_argument('--profile', default='default')
         parser.add_argument('--store', choices=['secretservice', 'encrypted-file', 'plaintext-file'], default='secretservice')
         parser.add_argument('--vault')
@@ -108,8 +106,6 @@ def main(argv=None):
         parser.add_argument('--id')
         parser.add_argument('--limit', type=int, default=20)
         args = parser.parse_args(argv)
-        if args.command == 'quota':
-            raise ReadError('QUOTA_QUERY_UNVERIFIED')
         if args.command == 'media':
             raise ReadError('MEDIA_SCHEMA_UNVERIFIED')
         if not 1 <= args.limit <= 100:
@@ -123,13 +119,18 @@ def main(argv=None):
         from .gateway import Gateway
         store = configured_store(args.store, args.profile, vault=args.vault, allow_secret_access=True)
         from .account_queries import WEB_QUERIES, read_web
-        if args.command in WEB_QUERIES or args.command in ('vm-health', 'vm-enrollment-health'):
+        if args.command in WEB_QUERIES or args.command in ('quota', 'vm-health', 'vm-enrollment-health'):
             with store.lock():
                 value = store.load()
                 if value is None:
                     raise LoginError('NO_SESSION')
                 login = restore(value)
-            if args.command in WEB_QUERIES:
+            if login.state == 'blocked':
+                raise LoginError('INVALID_SEQUENCE')
+            if args.command == 'quota':
+                from .subscription_queries import read_quota
+                result = read_quota(login)
+            elif args.command in WEB_QUERIES:
                 result = read_web(login.http, args.command)
             else:
                 # Reuse only existing Muse cookies in memory. Gateway performs

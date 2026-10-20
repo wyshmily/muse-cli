@@ -4,11 +4,15 @@ Verified 2026-10-20 by static inspection of official public JavaScript assets re
 
 ## Runtime outcome and implementation boundary
 
-One authorized attempt was made through the original server identity, using the authenticated initial Flight tree and `includeAgreement:false`. The request returned HTTP 403. It was stopped without retries, alternate actions, or routing workarounds.
+At 06:38 UTC, an authorized attempt through the original server identity, using the authenticated initial Flight tree and `includeAgreement:false`, returned HTTP 403. It was stopped pending diagnosis and additional authorization, without an automatic retry or alternate route.
 
-Consequently, the source establishes the client schema and request shape, not a functioning realtime CLI quota query. A non-networked `UNVERIFIED` result is appropriate until access is explicitly resolved through the supported path. The independent VM inventory reader was successfully tested with HTTP 200; that does not establish quota access.
+At 06:53 UTC, a separately approved, limited correction returned HTTP 200 through the same original identity. The homepage, read action and `includeAgreement:false` were unchanged. The corrected request supplied the current homepage's `data-dpl-id` as `x-deployment-id` and the existing login's request headers. The response established the usage schema listed below. Actual account percentages, balances, reset timestamps and response bodies are deliberately omitted from repository evidence.
 
-Do not infer that HTTP 403 means exhausted credits. Do not infer that the action succeeded, that subscription data was read, or that quota reset was learned. No alternative quota action is sought after this denial.
+This is a verified runtime contract. The CLI reader is implemented in this branch but has not been deployed; the live check verified the service contract, not an installed copy of the new command. The independent VM inventory reader's HTTP 200 was not used to infer quota access.
+
+The implementation pins the reviewed read-action ID and asset dependencies. Each invocation checks the current homepage's reference to the reviewed dependency, that dependency's reference to the reviewed action asset, and that asset's `fetchSubscriptionAction` ID. Missing or changed references fail closed as `READ_CONTRACT_CHANGED` before the POST. It does not automatically trust or invoke newly discovered action IDs.
+
+Several request headers changed together. The successful correction therefore does not prove that any single missing header caused the earlier 403. Do not infer that HTTP 403 means exhausted credits. Future 403 responses must stop the query without automatic retry, alternate action, recovery or routing workaround; the specifically approved correction is not a standing retry policy.
 
 ## Read-only action and response fields
 
@@ -18,9 +22,10 @@ Do not infer that HTTP 403 means exhausted credits. Do not infer that the action
 - Same file, byte 4717: `fetchSubscriptionAction({includeAgreement:r})`. The reader requires `success` and non-null `subscription`; `error` is its reported failure text. Use `includeAgreement:false` for this narrow quota query.
 - Same file exposes `subscription.usage`, `tier`, `statusSubtitle`, `usageRowLabel`, `usageRowValueLabel`, `usageRowFooter`, `billingSubtitle`, `topupRowLabel`, and `topupRowValueLabel`.
 - `2dl4_s2qy9opi.js`, byte 26584: `usage.state` falls back to `UNKNOWN`; rendered branches distinguish `METERED` and `UNLIMITED`.
-- Same file, byte 40399: monthly meter uses `usage.percentUsed`.
+- Same file, byte 40399: the usage meter uses `usage.percentUsed`; a frontend variable name does not establish the account's quota period.
 - Same file, byte 24096: top-up values are `subscription.topupBalance` and `subscription.topupTotal`.
-- No machine-readable quota reset timestamp was found in these client sources. `agreement.currentPeriodEndTime` exists (`42t7iubel_7xb.js`, byte 9057), but is an agreement/billing-period boundary, not proven to be the quota reset time. Do not relabel it as reset time.
+- The successful 06:53 UTC response includes `usage.state`, `usage.percentUsed`, `usage.resetsAt` (Unix seconds), and `usage.quotaStatus`, plus independent `subscription.topupBalance` and `subscription.topupTotal` fields. These are runtime schema observations; the client sources alone did not establish the reset field.
+- `usage.resetsAt` is the usage reset field. `agreement.currentPeriodEndTime` exists (`42t7iubel_7xb.js`, byte 9057), but is a separate agreement/billing-period boundary. Do not substitute it for the usage reset field. Agreement details remain excluded by `includeAgreement:false`.
 - Preserve server-provided `statusSubtitle` / `usageRowFooter` as display text when useful; do not parse them into a guessed timezone/date.
 
 ## Wire format
@@ -29,10 +34,12 @@ Do not infer that HTTP 403 means exhausted credits. Do not infer that the action
 
 - POST to the current router canonical URL (the same authorized page, not a guessed REST endpoint).
 - `Accept: text/x-component`
-- `next-action: <discovered fetchSubscriptionAction ID>`
+- `next-action: <reviewed, pinned fetchSubscriptionAction ID, revalidated against the current page's assets>`
 - `next-router-state-tree: encodeURIComponent(JSON.stringify(trimmedTree))`
 - `x-deployment-id` if the app has a deployment ID; `next-url` only for the app's intercepted-route context.
 - Body: `encodeReply(actionArgs)`.
+
+`20iuaqxts-ksp.js`, byte 21793, obtains the browser deployment ID from `document.documentElement.dataset.dplId`; the homepage supplies `data-dpl-id`. Use the value from the current authorized page, not a saved example or a guessed deployment. `NativeLogin.headers` is a separate dictionary and is not automatically inherited by a direct `login.http.post(...)`; the verified request explicitly supplied the existing login's headers. No new credentials were introduced.
 
 `1-gj2rmtigpe9.js`, bytes 26260 and 26330, uses `JSON.stringify` and returns the string directly when there are no multipart values. Therefore this simple argument list encodes as `[{"includeAgreement":false}]`.
 
@@ -64,7 +71,9 @@ Flight's literal `"$undefined"` means JavaScript undefined. Treat it as missing 
 - `05-ka1sp3k_nk.js`, byte 85325, consumes `agent_status` event payload `activity_code` into the agent activity state.
 - `1h_67546_mo7l.js`, byte 5370, maps `activity_code === "out_of_credits"` to `Out of usage`.
 - That explicit event state is evidence of an out-of-usage condition for the relevant agent; an arbitrary HTTP 429 is not.
-- `percentUsed >= 100` means the monthly metered component is used. It does not by itself prove total exhaustion because top-up balance is separate.
+- `percentUsed >= 100` means the metered component is used. It does not by itself prove total exhaustion because top-up balance is separate. Do not infer a monthly, weekly or other quota period from frontend variable names.
+- `usage.quotaStatus` is an explicit response field. Its unknown or missing values must remain unknown; this evidence does not establish a complete enum or justify inventing a mapping.
+- `usage.resetsAt` is a Unix-seconds usage reset timestamp, not the agreement period end or a guarantee of recovery from unrelated failures.
 - An unknown `usage.state`, failed query, missing field, or auth failure must remain unknown, not become exhausted or healthy.
 
 ## Operations excluded from the reader

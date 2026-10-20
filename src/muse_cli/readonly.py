@@ -33,10 +33,14 @@ def safe_id(value):
 def read(gateway, command, *, identifier=None, limit=20, cursor=None):
     if not 1 <= limit <= 100:
         raise ReadError('INVALID_LIMIT')
+    if command == 'quota':
+        raise ReadError('QUOTA_QUERY_UNVERIFIED')
     if command == 'media':
         raise ReadError('MEDIA_SCHEMA_UNVERIFIED')
     requests = {'identity': ('identity', {}), 'sessions': ('sessions.list', {}),
-                'spaces': ('spaces.list', {})}
+                'spaces': ('spaces.list', {}),
+                'vm-health': ('vm.health', {}),
+                'vm-enrollment-health': ('vm.enrollment_health', {})}
     if command == 'session':
         requests[command] = ('sessions.get', {'path_params': {'id': safe_id(identifier)}})
     elif command == 'history':
@@ -51,6 +55,30 @@ def read(gateway, command, *, identifier=None, limit=20, cursor=None):
         result = gateway.call_json(method, **kwargs)
         if not isinstance(result, (dict, list)):
             raise ReadError('INVALID_RESPONSE')
+        if command in ('vm-health', 'vm-enrollment-health'):
+            if not isinstance(result, dict):
+                raise ReadError('INVALID_RESPONSE')
+            allowed = {'cvm_enroll_state'}
+            if command == 'vm-health':
+                allowed |= {'all_healthy', 'checked_at_ms', 'health_source',
+                            'daemon_metrics_reachable', 'has_active_connection',
+                            'has_active_human_connection', 'has_live_device',
+                            'root_agent_available', 'ws_reachable',
+                            'no_in_flight_work', 'active_delivery_count',
+                            'active_runtime_work_count', 'active_subagent_count',
+                            'active_turn_count', 'device_count'}
+            result = {k: v for k, v in result.items() if k in allowed}
+            for key, value in result.items():
+                if key == 'cvm_enroll_state':
+                    valid = value in ('UNENROLLED', 'ENROLLING', 'ENROLLED', 'NOT_APPLICABLE')
+                elif key == 'health_source':
+                    valid = isinstance(value, str) and bool(re.fullmatch(r'[A-Za-z0-9_.-]{1,80}', value))
+                elif key.endswith(('_count', '_ms')):
+                    valid = type(value) is int and value >= 0
+                else:
+                    valid = type(value) is bool
+                if not valid:
+                    raise ReadError('INVALID_RESPONSE')
         from .safe_diagnostics import redact
         return redact(result)
     except ReadError:
@@ -66,16 +94,22 @@ class Parser(argparse.ArgumentParser):
 
 
 def main(argv=None):
-    session = gateway = None
+    session = gateway = login = None
     try:
-        parser = Parser(description='Read-only Muse access using explicit Secret Service storage.')
+        parser = Parser(description='Read-only Muse queries using explicitly selected existing login storage.',
+                        epilog='vm-status: website inventory/state (no wake/reset); vm-health and '
+                               'vm-enrollment-health: gateway diagnostics, not quota. '
+                               'quota: unavailable until its read contract is verified; sends no request.')
         parser.add_argument('--profile', default='default')
         parser.add_argument('--store', choices=['secretservice', 'encrypted-file', 'plaintext-file'], default='secretservice')
         parser.add_argument('--vault')
-        parser.add_argument('command', choices=['identity', 'sessions', 'session', 'history', 'spaces', 'media'])
+        parser.add_argument('command', choices=['identity', 'sessions', 'session', 'history', 'spaces', 'media',
+                                                'vm-health', 'vm-enrollment-health', 'vm-status', 'quota'])
         parser.add_argument('--id')
         parser.add_argument('--limit', type=int, default=20)
         args = parser.parse_args(argv)
+        if args.command == 'quota':
+            raise ReadError('QUOTA_QUERY_UNVERIFIED')
         if args.command == 'media':
             raise ReadError('MEDIA_SCHEMA_UNVERIFIED')
         if not 1 <= args.limit <= 100:
@@ -85,13 +119,31 @@ def main(argv=None):
         elif args.id is not None:
             raise ReadError('INVALID_ARGUMENTS')
         from .secure_store import configured_store
-        from .login_state import SavedLogin
+        from .login_state import SavedLogin, restore
         from .gateway import Gateway
         store = configured_store(args.store, args.profile, vault=args.vault, allow_secret_access=True)
-        with store.lock():
-            session = SavedLogin(store).resume()
-        gateway = Gateway(session._cookies)
-        result = read(gateway, args.command, identifier=args.id, limit=args.limit)
+        from .account_queries import WEB_QUERIES, read_web
+        if args.command in WEB_QUERIES or args.command in ('vm-health', 'vm-enrollment-health'):
+            with store.lock():
+                value = store.load()
+                if value is None:
+                    raise LoginError('NO_SESSION')
+                login = restore(value)
+            if args.command in WEB_QUERIES:
+                result = read_web(login.http, args.command)
+            else:
+                # Reuse only existing Muse cookies in memory. Gateway performs
+                # its standard temporary auth handshake; never save the login.
+                cookies = '; '.join(c.name + '=' + c.value for c in login.http.cookies.jar
+                                    if c.domain.lstrip('.') == 'muse.ai'
+                                    and c.path in ('/', '/api', '/api/') and not c.is_expired())
+                gateway = Gateway(cookies)
+                result = read(gateway, args.command)
+        else:
+            with store.lock():
+                session = SavedLogin(store).resume()
+            gateway = Gateway(session._cookies)
+            result = read(gateway, args.command, identifier=args.id, limit=args.limit)
         print(json.dumps(result, ensure_ascii=False))
         return 0
     except (KeyboardInterrupt, EOFError):
@@ -111,6 +163,8 @@ def main(argv=None):
                 pass
         if session is not None:
             session.close()
+        if login is not None:
+            login.close()
 
 
 if __name__ == '__main__':

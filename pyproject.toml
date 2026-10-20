@@ -90,5 +90,6 @@ include = [
     "SOURCE-MANIFEST.json",
     "README.md",
     "AGENTS.md",
+    ".github/workflows/publish.yml",
     "LICENSE",
 ]

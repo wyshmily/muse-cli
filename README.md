@@ -1,6 +1,7 @@
 ## DotLink local read CLI: start here
 
-The current isolated delivery is on `dotlink-readonly-vm-status-20261020`.
+The maintained branch layout is `main` for development and `release` for
+release preparation; see [migration status](docs/BRANCHES.md).
 Pin the full commit from the delivery message; do not install upstream PyPI
 expecting these commands. This is source delivery, not a production deployment.
 
@@ -20,7 +21,7 @@ Authentication recovery is separate and must respect existing permissions.
 ---
 
 > **DotLink fork:** maintained at [wyshmily/muse-cli](https://github.com/wyshmily/muse-cli),
-> branch `dotlink-native-stream`. It adds Windows protected-session reads, side-chat
+> branch `main` (see migration status above). It adds Windows protected-session reads, side-chat
 > event streaming, and separate native login/read-only commands. Install this
 > checkout to retain these changes; upstream PyPI and `muse-cli update` do not
 > include them. See [fork changes](docs/DOTLINK-CHANGES.md) and

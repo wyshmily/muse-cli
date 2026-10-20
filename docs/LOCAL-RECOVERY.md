@@ -1,7 +1,7 @@
 # Local execution and recovery
 
 This is the DotLink fork at **wyshmily/muse-cli**, not a new hosted service.
-The delivery branch is `dotlink-readonly-vm-status-20261020`. A branch moves;
+The target delivery layout is `main` plus `release`; see [migration status](BRANCHES.md). A branch moves;
 use the full 40-character commit SHA in the verified delivery message as the
 immutable source version. The latest branch is not an automatic upgrade source.
 These changes are not deployed, released on PyPI, or installed on the original

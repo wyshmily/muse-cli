@@ -1,5 +1,14 @@
 # muse-cli agent notes
 
+## Current branch/release policy (2026-10-20)
+
+The workflow is now manual-only. Read `docs/BRANCHES.md` before release work.
+Pushes, PRs and tags do not start Actions. A manual run defaults to build-only;
+publication requires explicitly selecting `publish=true` on a matching `v*`
+tag. The historical release steps below must not be interpreted as permission
+to run Actions, publish, or expect an automatic tag-triggered upload.
+
+
 ## Layout
 
 - `src/muse_cli/` is the package: `cli.py` (commands), `gateway.py` (auth,
@@ -7,8 +16,8 @@
 - `pyproject.toml` holds all packaging metadata (hatchling). The version is
   read from `__version__` in `src/muse_cli/__init__.py`; that is the only
   place it lives.
-- `.github/workflows/publish.yml` builds and smoke-tests on every push to
-  `main` and on PRs, and publishes to PyPI only on `v*` tags.
+- `.github/workflows/publish.yml` builds and smoke-tests only on explicit manual dispatch; publication also
+  requires `publish=true` on a matching `v*` tag.
 
 ## Cutting a release
 
@@ -47,21 +56,24 @@ these steps in order. Stop and report if any step fails.
    rm -rf dist
    ```
 
-5. **Commit and push the bump**, then wait for the build job on `main` to
-   pass:
+5. **Commit and push the bump.** This does not start Actions. Only when
+   explicitly authorized, manually dispatch a build-only run and wait for it:
 
    ```bash
    git commit -am "Bump version to X.Y.Z"
    git push origin main
-   gh run list --workflow publish.yml --limit 1   # get the run id
+   gh workflow run publish.yml --ref main -f publish=false
+   gh run list --workflow publish.yml --limit 1   # verify exact requested ref/run
    gh run watch <run-id> --exit-status
    ```
 
-6. **Tag and push the tag.** This is what publishes to PyPI:
+6. **Tag and push the tag.** Tags alone no longer publish. After explicit
+   publication approval, dispatch on that exact tag with publish=true:
 
    ```bash
    git tag -a vX.Y.Z -m "muse-cli X.Y.Z"
    git push origin vX.Y.Z
+   gh workflow run publish.yml --ref vX.Y.Z -f publish=true
    gh run list --workflow publish.yml --limit 1
    gh run watch <run-id> --exit-status
    ```

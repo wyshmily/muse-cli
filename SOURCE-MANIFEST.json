@@ -2,15 +2,15 @@
   "schema_version": 1,
   "scope": "Curated source payload; not a signature, dependency lock, or permission to execute extra files. Pin repository commit independently.",
   "sha256": {
-    "AGENTS.md": "701b0a52e757a30bf670b20bbdf7e1cb698becd04ecd08af567f07a836aff80f",
+    "AGENTS.md": "520a061508cef8804d8cdda32f179926f2dc9d1bc2415fe35668cb7377a2b5a1",
     "LICENSE": "ed1e9c386559a5d5f0eed150a7d52a175036bf2a886edd83c9ddbf8d8972ebbc",
-    "README.md": "8901b14ab6dc285e8a5f5667516fc227410a3fa41356b38ca943c0e73b8dd84e",
+    "README.md": "e8bb8f1878a6f5df3c314d2b6403747429783c94093d63654bdfce0ef25085d1",
     "docs/ACCOUNT-QUERIES.md": "dab8a349c0214060ff4aa7ade4f8e1009883756b87ff71f0e7f35eb5c6a5f483",
-    "docs/LOCAL-RECOVERY.md": "23ec9e16d39a0b4a59d2c69136e639713e6cb3a730bdf5526f7634b15a30ea98",
+    "docs/LOCAL-RECOVERY.md": "34a50365beb1001599668d7e4d4d47b8e8d22f3533721c381d623f8f06a232b2",
     "docs/PROTOCOL.md": "c55b9c5068844b8e526b27dfc8282c9c7e65876976056287a92fdc9f11bfd884",
     "docs/QUOTA-CONTRACT-EVIDENCE.md": "cf2f88a279556e5475f405aaf1b9dfcf4635b0a8974b872ed3ce7ede6f23bef3",
     "docs/WEB-FEATURE-COVERAGE.md": "395df542ccddd1ba4e6e71605bb79f84c4aa379083305b43100ccd4d9b3e2985",
-    "pyproject.toml": "9e37abbe87da67e2812071a50efebc6ebf9c050f68b5a76c342015ad6aa95dcb",
+    "pyproject.toml": "3c2e51292fc013dab34a6e964d07117530538e2610072afcc30c88f74777b028",
     "skills/muse-local/SKILL.md": "7d1f1a85f44411e15d0dec31231a6129897a1be47e682894d7242e87fb3d78d0",
     "src/muse_cli/__init__.py": "1e9819b21efc4890cab9338da65b1c1afc0c3bcd2ce4d4efe8b124b768317e98",
     "src/muse_cli/__main__.py": "6d8b7d7846a845059d7a3107143f11131f63c5511d669b44085b15ec5e3d2279",
@@ -48,6 +48,8 @@
     "tests/test_secure_backends.py": "2ec2d2e0f1be481ae7ab75f79282261668cd77a1b2eb5d1580435621fd4c3e0e",
     "tests/test_source_manifest.py": "912d7358737d73036bb3eecbf864c80c9471d80a2b43a0bfd1da7a6ca28b9730",
     "tests/test_subscription_queries.py": "0d5516eefa1f9cd2b6e90f4be7e2e1c1c57edad2d90fa0d23d8984bf199cd333",
-    "tools/verify_source.py": "1651ea6f4f61166a7ca33457742641fd56bfc28442a89aecc27376b2b0949e81"
+    "tools/verify_source.py": "1651ea6f4f61166a7ca33457742641fd56bfc28442a89aecc27376b2b0949e81",
+    "docs/BRANCHES.md": "fe5da79b8add4b6444e8334732936aa8ec4518da119135f430db2e17c5df2cb4",
+    ".github/workflows/publish.yml": "6d53d929c610b0881edde3faa0f3b5e961ec97e8554615fca50b4a9d881fb02f"
   }
 }

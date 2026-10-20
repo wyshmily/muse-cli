@@ -1,3 +1,24 @@
+## DotLink local read CLI: start here
+
+The current isolated delivery is on `dotlink-readonly-vm-status-20261020`.
+Pin the full commit from the delivery message; do not install upstream PyPI
+expecting these commands. This is source delivery, not a production deployment.
+
+```sh
+muse-read discover
+muse-read discover --group account
+muse-read describe quota
+muse-read describe library
+```
+
+These entry points are offline and require no credentials. They explain the
+curated commands, not all 342 observed routes. See [local installation and
+refresh recovery](docs/LOCAL-RECOVERY.md), the [short agent entry skill](skills/muse-local/SKILL.md),
+and [web/API coverage and limits](docs/WEB-FEATURE-COVERAGE.md).
+Authentication recovery is separate and must respect existing permissions.
+
+---
+
 > **DotLink fork:** maintained at [wyshmily/muse-cli](https://github.com/wyshmily/muse-cli),
 > branch `dotlink-native-stream`. It adds Windows protected-session reads, side-chat
 > event streaming, and separate native login/read-only commands. Install this

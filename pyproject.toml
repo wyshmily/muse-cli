@@ -86,6 +86,9 @@ include = [
     "docs",
     "skills",
     "tests",
+    "tools",
+    "SOURCE-MANIFEST.json",
     "README.md",
+    "AGENTS.md",
     "LICENSE",
 ]

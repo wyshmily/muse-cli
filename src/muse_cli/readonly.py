@@ -105,12 +105,30 @@ def main(argv=None):
         parser.add_argument('command', choices=['identity', 'sessions', 'session', 'history', 'spaces', 'media',
                                                 'vm-health', 'vm-enrollment-health', 'vm-status', 'quota', 'capabilities', 'model', 'computer-context',
                                                 'voice-catalog', 'voice-filters',
-                                                'connector-marketplace', 'library'])
+                                                'connector-marketplace', 'library', 'discover', 'describe'])
+        parser.add_argument('target', nargs='?', help='Command name for describe (offline).')
+        parser.add_argument('--group', help='Command group for discover (offline).')
         parser.add_argument('--id')
         parser.add_argument('--limit', type=int, default=20)
         parser.add_argument('--offset', type=int, default=0, help='Voice/library page offset (0..100000).')
         parser.add_argument('--preset', choices=['artifacts', 'media', 'recents'], default='artifacts', help='Library listing preset; never a filesystem path.')
         args = parser.parse_args(argv)
+        if args.command in ('discover', 'describe'):
+            if args.id is not None or args.offset or args.preset != 'artifacts' or args.limit != 20:
+                raise ReadError('INVALID_ARGUMENTS')
+            from .discovery import discover, describe
+            if args.command == 'discover':
+                if args.target is not None:
+                    raise ReadError('INVALID_ARGUMENTS')
+                result = discover(args.group)
+            else:
+                if args.target is None or args.group is not None:
+                    raise ReadError('INVALID_ARGUMENTS')
+                result = describe(args.target)
+            print(json.dumps(result, ensure_ascii=False))
+            return 0
+        if args.target is not None or args.group is not None:
+            raise ReadError('INVALID_ARGUMENTS')
         if args.command == 'capabilities':
             from .capabilities import capabilities
             print(json.dumps(capabilities(prefix=args.id, limit=args.limit), ensure_ascii=False))

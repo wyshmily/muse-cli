@@ -8,7 +8,8 @@
     "README.md": "a9a7c11bb53e5386022b266c22ecca2833d088082488c8567d99d281443d0db4",
     "docs/ACCOUNT-QUERIES.md": "dab8a349c0214060ff4aa7ade4f8e1009883756b87ff71f0e7f35eb5c6a5f483",
     "docs/BRANCHES.md": "fe5da79b8add4b6444e8334732936aa8ec4518da119135f430db2e17c5df2cb4",
-    "docs/LOCAL-RECOVERY.md": "332682ff40f2a09656567ab6e2cb37f9420e35f705f70ef867bd81157d35c9e6",
+    "docs/LOCAL-LIVE-PROBE.md": "6a0e9caa37c8e9a6965656476751ad56de8da0f2a559a60641501fdf5e179a18",
+    "docs/LOCAL-RECOVERY.md": "33294dd99e105db0f278155bda528fe778114c43d43dd17a03ed27c3d39482d1",
     "docs/NATIVE-LOGIN.md": "af7d7c452781cec45fc7b1941b10b4c18a553ea9688118b28d595b1ad0491aa7",
     "docs/PROTOCOL.md": "c55b9c5068844b8e526b27dfc8282c9c7e65876976056287a92fdc9f11bfd884",
     "docs/QUOTA-CONTRACT-EVIDENCE.md": "cf2f88a279556e5475f405aaf1b9dfcf4635b0a8974b872ed3ce7ede6f23bef3",
@@ -50,10 +51,12 @@
     "tests/test_metadata_queries.py": "3b0631650fa693446a9a1cd7337de5d8e24a6150549ac131e4818bac38c2fadb",
     "tests/test_native_auth.py": "9a766dfab2930e64bc2378dfbdd4ca853d313f50669ea1bc3fae338553c5b831",
     "tests/test_plaintext_store.py": "74f2003e4f0085f5ea83e9f4adebe75de7b62765add8c04de188b5a93ab4149a",
+    "tests/test_probe_local.py": "26a8b8c650cfafeee1d13c3b93b84603cc619f5823d3e62348998983ec1bd547",
     "tests/test_secure_backends.py": "2ec2d2e0f1be481ae7ab75f79282261668cd77a1b2eb5d1580435621fd4c3e0e",
     "tests/test_source_manifest.py": "912d7358737d73036bb3eecbf864c80c9471d80a2b43a0bfd1da7a6ca28b9730",
     "tests/test_subscription_queries.py": "0d5516eefa1f9cd2b6e90f4be7e2e1c1c57edad2d90fa0d23d8984bf199cd333",
     "tools/bootstrap_local.py": "b7b84db608df44d3985395f38f62345ad667b07fd8e4a56f89fa2d7028207551",
+    "tools/probe_local.py": "35686039ed15dcd339c02fb5f93e0dc22669245de27a15617c836c483dfa353b",
     "tools/verify_source.py": "1651ea6f4f61166a7ca33457742641fd56bfc28442a89aecc27376b2b0949e81"
   }
 }

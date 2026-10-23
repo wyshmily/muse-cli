@@ -136,3 +136,7 @@ Any separately approved temporary live verification must use a separate
 in-memory session, report its actual calls/results, and clean up its temporary
 secret material. A standing instruction to operate Muse is not permission to
 silently copy login keys into every refreshed environment.
+
+A separate, explicitly authorized read-only live probe is documented in
+[LOCAL-LIVE-PROBE.md](LOCAL-LIVE-PROBE.md). It is not run by bootstrap or doctor;
+it neither obtains credentials nor grants permission to transmit them.

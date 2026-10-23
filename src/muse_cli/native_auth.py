@@ -336,5 +336,8 @@ class NativeLogin:
         except Exception:
             raise LoginError('INVALID_RESPONSE') from None
         finally:
-            if not self.retain_pending or self.state == 'authenticated':
+            # The interactive terminal owns this transport until quit/EOF,
+            # including after success: subsequent auth checks need its cookies.
+            # Staged/default callers still close immediately after handoff.
+            if not self.retain_pending:
                 self.close()

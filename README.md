@@ -17,6 +17,11 @@ curated commands, not all 342 observed routes. See [local installation and
 refresh recovery](docs/LOCAL-RECOVERY.md), the [short agent entry skill](skills/muse-local/SKILL.md),
 and [web/API coverage and limits](docs/WEB-FEATURE-COVERAGE.md).
 Authentication recovery is separate and must respect existing permissions.
+Use the fork's [native OTP login guide](docs/NATIVE-LOGIN.md), not the historical
+browser-export instructions below. Check approved existing sessions first;
+Gateway failures do not by themselves mean login expired. `preflight` is
+metadata-only; auth-only `check` can update local session state. OTP entry needs
+a private hidden-input TTY, never secrets in argv, environment or logs.
 
 ---
 

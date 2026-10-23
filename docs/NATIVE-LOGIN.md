@@ -71,16 +71,51 @@ For Secret Service, select `--store secretservice --profile PROFILE` without
 `--vault`. Its item service is `dotlink.muse-cli.linux.v1`; its nonsecret lock
 is `$XDG_RUNTIME_DIR/dotlink-muse-PROFILE.lock`.
 
-`preflight` only checks metadata; it does not access stored secrets. `start`
+`preflight` only checks metadata; it does not access stored secrets, send any
+auth request, or write local state. It is not proof of current login validity. `start`
 creates one recoverable OTP attempt; `confirm` submits its code once. After a
 timeout, cancellation or process restart, use `status` and `check` on the same
 store before any new attempt. They do not resend OTP. `--wait` is accepted only
-for read-only authentication checks, up to 300 seconds, at five-second intervals.
+for auth-only checks, up to 300 seconds, at five-second intervals. These
+requests do not send OTP or change account settings, but **check is not locally
+read-only**: it can persist returned cookies and the authenticated state. Only
+`WAITING_SESSION` is polled; rejection, timeout and rate limiting stop immediately.
 
 `AUTHENTICATED` means auth/check succeeded and the selected state was saved;
 it does not prove Gateway readiness. `status` reports the saved phase, not
 current authentication validity. `forget` removes only the selected local
 session and does not revoke the remote session.
+
+## Existing sessions and machine execution
+
+Do not start a new OTP flow just because a downstream Gateway read fails.
+First use the owner's approved existing backend/profile/vault: `status` reports
+its saved phase and an authorized `check` independently tests auth. A successful
+`auth/check` and saved `authenticated` state mean login succeeded, even when
+Gateway transport/VM readiness fails. Preserve that session and diagnose the
+separate failure. `status` itself loads secrets (and may prompt for a vault
+passphrase); unlike `preflight`, it is not a metadata-only operation.
+
+`start`, `confirm`, and `session` require a private TTY with hidden input. An
+MCP/exec tool without PTY support cannot supply those interactive steps; that
+does not mean native OTP login is unsupported. Use an already authorized private
+terminal on the approved runtime, or request that interaction. Do not weaken
+the TTY guard or add a secret-input transport to work around a tool limitation.
+Hidden prompts must not be recorded by tooling or terminal session logging.
+Never send account details, OTPs, passphrases, cookies or tokens through argv,
+environment variables, command strings, shell pipes/here-documents, logs or chat.
+
+Machine callers can run `preflight` and, with authorized existing storage,
+`status`/`check`/`muse-read` when the selected backend needs no interactive secret.
+Encrypted-file operations still require a private passphrase prompt. Secret
+Service must already be unlocked. Plaintext storage is never an automatic
+fallback. Do not scan for secrets, transfer credentials, unlock services, change
+permissions or switch backends merely to make a headless command work.
+
+Native stored sessions are for `muse-read`; legacy `muse-cli` cookie-file or
+protected-session configuration is separate. Native authentication does not
+silently export credentials into legacy files. Do not copy secret values between
+these stores as an installation or Gateway repair step.
 
 ## Read commands and limits
 

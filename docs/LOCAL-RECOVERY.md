@@ -100,3 +100,39 @@ Library `artifacts` was tested live; `media` and `recents` were static-confirmed
 Computer task entry fields were static-confirmed because the live list was
 empty. Legacy commands are labeled separately. Read per-command notes and
 [coverage](WEB-FEATURE-COVERAGE.md) before interpreting a result.
+
+## Automated Linux bootstrap and doctor
+
+`tools/bootstrap_local.py` makes the code-only steps above repeatable on Linux
+with Python 3.12+. This tool's minimum is separate from the library's Python
+3.10+ requirement. First independently verify this tool and the repository's
+full commit SHA; then run:
+
+```sh
+python3 tools/bootstrap_local.py bootstrap --source "$TRUSTED_CHECKOUT" \
+  --commit "$COMMIT" --runtime "$NEW_RUNTIME"
+python3 tools/bootstrap_local.py doctor --commit "$COMMIT" --runtime "$NEW_RUNTIME"
+```
+
+Bootstrap requires a nonexistent runtime directory. It archives the selected
+committed tree (ignoring working-tree edits), verifies its manifest before
+installation, installs the fork plus `linux-login` in a fresh venv, and runs
+doctor. It does not fetch arbitrary repositories, recover authentication, or
+replace the original server. Registry access is required for installation;
+dependency ranges are not a reproducible hash lock. Failed runtimes are retained
+for inspection, not silently deleted or retried.
+
+Doctor checks the source manifest, compares the installed package's file
+inventory and SHA-256 hashes to the source snapshot, exercises installed CLI
+entrypoints and offline discovery, checks missing-store failure behavior, and
+runs the snapshot's mocked tests against the installed package. It isolates
+HOME/DBus/Muse/Python configuration and disables update checks. This is
+process-configuration isolation, **not an OS network sandbox**. The source-commit
+marker is not a signature; trust still comes from the independently verified
+repository and commit. Success reports `live_gateway_verified: false`.
+
+Do not import real credentials into these credential-free doctor runtimes.
+Any separately approved temporary live verification must use a separate
+in-memory session, report its actual calls/results, and clean up its temporary
+secret material. A standing instruction to operate Muse is not permission to
+silently copy login keys into every refreshed environment.

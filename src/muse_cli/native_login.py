@@ -57,14 +57,18 @@ def main(argv=None):
     from .login_state import SavedLogin
     session = workflow = None
     try:
-        parser = Parser(description='Muse OTP: hidden TTY input, no account/code arguments. Default session is memory-only.')
+        parser = Parser(
+            description='Muse native OTP: hidden TTY input, no account/code arguments. Default session is memory-only.',
+            epilog='preflight: metadata only, no secrets/network/writes. status: saved local phase, not live validity. '
+                   'check: auth-only network request and local state writes; no OTP resend or Gateway. '
+                   'start/confirm/session require a private hidden-input TTY; no stdin/env/argv credential fallback.')
         parser.add_argument('action', nargs='?', default='session',
                             choices=['session', 'preflight', 'start', 'confirm', 'check', 'status', 'forget'])
         parser.add_argument('--store', choices=['secretservice', 'encrypted-file', 'plaintext-file'])
         parser.add_argument('--vault', help='absolute session file path in a user-prepared private durable directory')
         parser.add_argument('--profile', default='default')
         parser.add_argument('--wait', type=int, default=0,
-                            help='check only: wait up to 300 seconds, polling read-only checks every 5 seconds')
+                            help='check only: wait up to 300 seconds, polling auth-only requests every 5 seconds; updates local state')
         args = parser.parse_args(argv)
         if not 0 <= args.wait <= 300 or (args.wait and args.action != 'check'):
             raise ReadError('INVALID_ARGUMENTS')

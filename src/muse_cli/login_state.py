@@ -59,7 +59,7 @@ def restore(value, *, _http=None):
 
 def check_session(login):
     """Read auth state only; never sends another code or finalizes an account."""
-    if login.state == 'blocked':
+    if login.closed or login.state == 'blocked':
         raise LoginError('INVALID_SEQUENCE')
     data = login._request('POST', '/api/auth/check')
     if not isinstance(data.get('access_token'), str) or not data['access_token']:

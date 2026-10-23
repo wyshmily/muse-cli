@@ -60,6 +60,50 @@ def flow(confirm=None, check=None):
 
 
 class WorkflowTests(unittest.TestCase):
+    def test_memory_terminal_rechecks_after_success_and_gateway_failure(self):
+        from muse_cli.native_login import memory_terminal
+        http = flow()
+        http.responses.append(Response({'access_token': SECRET}))
+        login = NativeLogin(_http=http, retain_pending=True)
+        output = io.StringIO()
+        with patch('muse_cli.native_login.NativeLogin', return_value=login), \
+             patch('muse_cli.native_login.hidden_input', side_effect=['fixture@example.invalid', '000000']), \
+             patch('sys.stdin.isatty', return_value=True), \
+             patch('builtins.input', side_effect=['identity', 'check', 'quit']), \
+             patch('muse_cli.gateway.Gateway', side_effect=TimeoutError(SECRET)), \
+             contextlib.redirect_stdout(output), contextlib.redirect_stderr(output):
+            self.assertEqual(memory_terminal(), 0)
+        self.assertEqual(output.getvalue().count('AUTHENTICATED:'), 2)
+        self.assertIn('READ_FAILED', output.getvalue())
+        self.assertNotIn('WAITING_SESSION', output.getvalue())
+        self.assertNotIn(SECRET, output.getvalue())
+        self.assertEqual(sum('/send-otp' in c[1] for c in http.calls), 1)
+        self.assertEqual(sum('/confirm-otp' in c[1] for c in http.calls), 1)
+        self.assertEqual(sum('/auth/check' in c[1] for c in http.calls), 2)
+        self.assertTrue(login.closed)
+        self.assertFalse(list(http.cookies.jar))
+
+    def test_retained_login_closes_on_terminal_eof(self):
+        from muse_cli.native_login import memory_terminal
+        http = flow()
+        login = NativeLogin(_http=http, retain_pending=True)
+        with patch('muse_cli.native_login.NativeLogin', return_value=login), \
+             patch('muse_cli.native_login.hidden_input', side_effect=['fixture@example.invalid', '000000']), \
+             patch('sys.stdin.isatty', return_value=True), \
+             patch('builtins.input', side_effect=EOFError), \
+             contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            with self.assertRaises(EOFError):
+                memory_terminal()
+        self.assertTrue(login.closed)
+        self.assertFalse(list(http.cookies.jar))
+
+    def test_check_closed_login_never_uses_transport(self):
+        http = flow()
+        login = NativeLogin(_http=http)
+        login.close()
+        self.fails('INVALID_SEQUENCE', lambda: check_session(login))
+        self.assertEqual(http.calls, [])
+
     def test_staged_login_and_check_never_verify_gateway(self):
         from muse_cli.native_login import main
         from muse_cli.native_auth import MemorySession

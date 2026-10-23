@@ -24,6 +24,16 @@ description: Discover and use the pinned DotLink Muse read CLI in an ephemeral e
    renew an old one-time credential-transfer approval. Use the existing formal
    original-server channel or obtain any required specific transfer approval;
    never persist secrets in skills, command lines or source control.
+   After bootstrap/doctor, use `python3 tools/recovery_plan.py describe` and
+   `inspect-status --credential-file PATH` for metadata-only recovery discovery.
+   Missing credentials (`needs_recovery`) may justify a task-bound `create`
+   request; `present_unverified` must first be checked within the existing
+   authorized workflow, not treated as expired or used to trigger another ask.
+   Only missing or independently confirmed invalid credentials need recovery.
+   See [recovery plans](../../docs/LOCAL-RECOVERY.md#task-bound-recovery-request-plans-offline-v1)
+   for exact task/environment/key/scope binding. Plans and `validate` never grant
+   approval or transfer credentials; owner approval and one-use server claim
+   remain separate, and no automatic recovery/notification is implemented here.
 6. `capabilities` is only an observed-route catalog, not an execution allowlist.
    Do not invoke writes, raw routes, purchases, reset/wake, uploads or permission
    changes from catalog discovery alone. Stop on rejection; do not change identity

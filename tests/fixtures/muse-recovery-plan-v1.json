@@ -1,0 +1,28 @@
+{
+  "plan": {
+    "cli_commit": "54fe6f412252308036a12696e47a2d4af89a7aea",
+    "created_at": 1792792800,
+    "environment_instance_id": "env-example-1",
+    "expires_at": 1792793400,
+    "recipient_public_key_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "request_id": "123e4567-e89b-42d3-a456-426614174000",
+    "schema_version": 1,
+    "scope": {
+      "account_ref": "owner-muse",
+      "actions": [
+        "auth_check",
+        "read_history",
+        "read_sessions"
+      ],
+      "hosts": [
+        "hatch.metaaivm.com",
+        "muse.ai"
+      ],
+      "vault_ref": "muse-primary"
+    },
+    "task_id": "task-example-1",
+    "request_digest": "7914362042ffc603932d5496860800389cb42a3f68fc25d7ca9babc51ef7ac9b"
+  },
+  "canonical": "{\"cli_commit\":\"54fe6f412252308036a12696e47a2d4af89a7aea\",\"created_at\":1792792800,\"environment_instance_id\":\"env-example-1\",\"expires_at\":1792793400,\"recipient_public_key_sha256\":\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\"request_id\":\"123e4567-e89b-42d3-a456-426614174000\",\"schema_version\":1,\"scope\":{\"account_ref\":\"owner-muse\",\"actions\":[\"auth_check\",\"read_history\",\"read_sessions\"],\"hosts\":[\"hatch.metaaivm.com\",\"muse.ai\"],\"vault_ref\":\"muse-primary\"},\"task_id\":\"task-example-1\"}",
+  "digest": "7914362042ffc603932d5496860800389cb42a3f68fc25d7ca9babc51ef7ac9b"
+}

@@ -140,3 +140,93 @@ silently copy login keys into every refreshed environment.
 A separate, explicitly authorized read-only live probe is documented in
 [LOCAL-LIVE-PROBE.md](LOCAL-LIVE-PROBE.md). It is not run by bootstrap or doctor;
 it neither obtains credentials nor grants permission to transmit them.
+
+## Task-bound recovery request plans (offline v1)
+
+`tools/recovery_plan.py` is a standard-library-only planning/validation tool.
+It does **not** implement automatic recovery, send an approval message, generate
+keys, export/import a credential, or issue a persistent login. It can run before
+package installation. Bootstrap/doctor remain credential-free and do not invoke
+this tool automatically. No real-account transfer is covered by its tests.
+
+1. Finish the pinned code bootstrap/doctor above.
+2. Explicitly select the intended credential file and inspect **metadata only**:
+
+   ```sh
+   python3 tools/recovery_plan.py inspect-status --credential-file "$SESSION_FILE"
+   ```
+
+   `needs_recovery` means the selected path is missing, not that the tool searched
+   all possible login stores. `present_unverified` means a private, owner-owned,
+   single-link regular file is present; no credential content was opened and no
+   authentication was checked. First verify that existing session through the
+   already authorized formal workflow. Do not send a new recovery request merely
+   because a file is present but unverified. Unsafe permissions, symlinks (including
+   parent components), `..` path components, nonregular files or unreadable metadata
+   block the workflow.
+   This deliberately narrow check is not an OS sandbox or race-proof file opener;
+   a future credential consumer must independently revalidate before reading.
+3. Only for missing or independently confirmed invalid credentials, prepare a
+   request using independently verified current task/runtime identity, the SHA-256
+   of the **recipient's public key** (never its private key), allowed operation scope,
+   approved source commit and non-secret account/vault aliases. This tool does not
+   create the recipient key or attest environment identity; the trusted server must
+   match them against its configured runtime policy. Example (all inputs non-secret):
+
+   ```sh
+   python3 tools/recovery_plan.py create --credential-file "$SESSION_FILE" \
+     --task-id task-example-1 --environment-instance-id env-example-1 \
+     --recipient-public-key-sha256 "$PUBLIC_KEY_SHA256" --cli-commit "$COMMIT" \
+     --account-ref owner-muse --vault-ref muse-primary \
+     --actions auth_check read_history read_sessions \
+     --hosts hatch.metaaivm.com muse.ai --ttl-seconds 300 > recovery-plan.json
+   ```
+
+   Standard output is the plan; standard error contains only metadata status.
+   For `present_unverified`, creation produces a **draft pending session
+   verification**, not a finding that recovery is necessary and not permission
+   to send a notification. No command accepts raw credentials, callbacks, an
+   owner `approved` flag or an approval receipt. Never supply secrets as aliases.
+4. A trusted owner-facing adapter may ask about this exact plan after verifying
+   recovery is actually necessary. A native owner reply or a verified bound
+   WeChat owner event must be resolved by that adapter—not fabricated in model
+   input. Approval must bind the exact digest, task, environment, public key,
+   scope, source commit and lifetime; a server-generated challenge and atomic
+   one-use claim are additionally required. The CLI never treats a valid digest
+   as approval and never calls that server itself. A changed binding, expired
+   plan or environment reset requires a new plan and new specific approval.
+5. To check an incoming non-secret plan, run `validate --plan recovery-plan.json`
+   with the same binding flags shown above (omit `--credential-file` and
+   `--ttl-seconds`). Obtain these expected values from independently trusted
+   current intent/runtime policy, **not by copying the incoming plan**. Success
+   is only `valid_non_authorizing_plan`; it grants nothing. Validation does not
+   detect reused request IDs or perform a claim; the trusted server must do both.
+6. The older [live probe](LOCAL-LIVE-PROBE.md) remains a separate, specifically
+   approved diagnostic. Neither this plan nor its validation silently wires the
+   probe to a vault, authorizes a transfer, or changes its cleanup requirements.
+
+### Wire contract
+
+`describe` reports the offline contract. Exact fields:
+`schema_version` (integer 1), `request_id` (lowercase canonical UUID4), `task_id`,
+`environment_instance_id`, `recipient_public_key_sha256` (64 lowercase hex),
+`scope`, `cli_commit` (40 lowercase hex), `created_at`, `expires_at` (safe integer
+UTC epoch seconds), and `request_digest` (64 lowercase hex).
+
+`scope` has exactly `actions`, `hosts`, `account_ref`, `vault_ref`.
+Nonempty arrays are already sorted and unique; they are **not** silently sorted.
+Actions are limited to `auth_check`, `read_identity`, `read_sessions`,
+`read_history`. Hosts are limited to `hatch.metaaivm.com` and `muse.ai` (hostnames,
+not URLs). IDs and aliases match `[A-Za-z0-9][A-Za-z0-9._:-]{0,127}`; no emails,
+Unicode, slashes or secret values. Unknown fields are rejected at both levels.
+The lifetime is 1–600 seconds, creation cannot be in the future, and the exact
+expiry instant is already expired. Booleans are not integers.
+
+Canonical bytes omit only `request_digest`, sort object keys recursively, retain
+array order, and encode compact ASCII JSON with no whitespace or newline.
+All permitted string values are ASCII tokens; JSON escaping differences cannot
+occur. Digest is SHA-256 of those bytes. The shared synthetic fixture is
+`tests/fixtures/muse-recovery-plan-v1.json`; its digest is
+`7914362042ffc603932d5496860800389cb42a3f68fc25d7ca9babc51ef7ac9b`.
+It is intentionally historical and must fail current-time expiry validation.
+The fixture tests use a fixed synthetic clock, never an expiry bypass CLI flag.
